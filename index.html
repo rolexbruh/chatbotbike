@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Burdwan Rental Bike Chatbot</title>
   <style>
-    body { 
+    body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0; 
-      padding: 0; 
+      margin: 0;
+      padding: 0;
       background: #000;
     }
     .chat-container {
@@ -41,9 +41,9 @@
       box-sizing: border-box;
     }
     .message {
-      margin-bottom: 20px; /* Increased margin to prevent overlap */
+      margin-bottom: 20px;
       display: flex;
-      flex-direction: column; /* Stack message elements vertically */
+      flex-direction: column;
     }
     .bot-message {
       align-items: flex-start;
@@ -56,7 +56,7 @@
       padding: 10px 15px;
       border-radius: 18px;
       line-height: 1.4;
-      margin-bottom: 5px; /* Space between bubble and options */
+      margin-bottom: 5px;
     }
     .bot-message .message-bubble {
       background: #222;
@@ -71,9 +71,9 @@
     .options-container {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px; /* Increased gap between buttons */
+      gap: 10px;
       margin-top: 10px;
-      margin-bottom: 20px; /* Space below options */
+      margin-bottom: 20px;
     }
     .option-btn {
       background: #333;
@@ -126,7 +126,7 @@
       background: #222;
       border-radius: 10px;
       padding: 10px;
-      margin-bottom: 15px; /* Increased margin to prevent overlap */
+      margin-bottom: 15px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.5);
       border-left: 3px solid #555;
     }
@@ -137,13 +137,13 @@
     .bike-price {
       color: #999;
       font-size: 14px;
-      margin-bottom: 5px; /* Space between price and button */
+      margin-bottom: 5px;
     }
     .order-form {
       background: #222;
       padding: 15px;
       border-radius: 10px;
-      margin-bottom: 20px; /* Space below form */
+      margin-bottom: 20px;
     }
     .order-form input, .order-form textarea {
       width: 100%;
@@ -165,7 +165,6 @@
     }
     .cart-indicator {
       position: fixed;
-      bottom: 440px;
       right: 30px;
       background: #444;
       color: #fff;
@@ -183,16 +182,16 @@
 <body>
 
 <div class="chat-container" id="chatContainer">
-  <div class="chat-header" onclick="toggleChat()">
+  <div class="chat-header" role="button" tabindex="0" onclick="toggleChat()" onkeypress="if(event.key === 'Enter') toggleChat()">
     <span>🏍️ Burdwan Rental Bike Chatbot</span>
-    <span id="toggleIcon">▼</span>
+    <span id="toggleIcon" aria-label="Toggle chat">▼</span>
   </div>
   <div class="chat-body" id="chatBody">
     <!-- Messages will appear here -->
   </div>
   <div class="user-input">
     <input type="text" id="userText" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
-    <button id="sendBtn" onclick="sendMessage()">→</button>
+    <button id="sendBtn" aria-label="Send message" onclick="sendMessage()">→</button>
   </div>
 </div>
 
@@ -200,7 +199,7 @@
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
 
 <script>
-// Bike data (images removed)
+// Bike data
 const BIKE_LIST = [
   { name: "Yamaha R15", price: 700 },
   { name: "Husqvarna Svartpilen", price: 700 },
@@ -215,7 +214,7 @@ const BIKE_LIST = [
 const fuse = new Fuse(BIKE_LIST, {
   keys: ['name'],
   includeScore: true,
-  threshold: 0.3, // Sensitivity for fuzzy matching
+  threshold: 0.3,
   distance: 5,
   minMatchCharLength: 3
 });
@@ -237,10 +236,8 @@ function initializeChat() {
   }
 }
 
-// Call initializeChat after a short delay to ensure DOM is loaded
-window.onload = function() {
-  setTimeout(initializeChat, 500);
-};
+// Use DOMContentLoaded for reliable initialization
+document.addEventListener("DOMContentLoaded", initializeChat);
 
 function toggleChat() {
   const chatBody = document.getElementById("chatBody");
@@ -267,6 +264,8 @@ function updateCartIndicator() {
   }
   if (cartIndicator) {
     cartIndicator.textContent = conversationState.selectedBikes.length;
+    const chatContainer = document.getElementById("chatContainer");
+    cartIndicator.style.bottom = chatContainer.style.height === "500px" ? "460px" : "60px";
     cartIndicator.style.display = conversationState.selectedBikes.length > 0 ? 'flex' : 'none';
   }
 }
@@ -279,7 +278,7 @@ function addBotMessage(text, isTyping = false) {
   }
   const messageDiv = document.createElement("div");
   messageDiv.className = "message bot-message";
-  
+  messageDiv.setAttribute("role", "log");
   if (isTyping) {
     messageDiv.innerHTML = `
       <div class="typing-indicator">
@@ -289,7 +288,6 @@ function addBotMessage(text, isTyping = false) {
   } else {
     messageDiv.innerHTML = `<div class="message-bubble">${text}</div>`;
   }
-  
   chatBody.appendChild(messageDiv);
   chatBody.scrollTop = chatBody.scrollHeight;
 }
@@ -302,6 +300,7 @@ function addUserMessage(text) {
   }
   const messageDiv = document.createElement("div");
   messageDiv.className = "message user-message";
+  messageDiv.setAttribute("role", "log");
   messageDiv.innerHTML = `<div class="message-bubble">${text}</div>`;
   chatBody.appendChild(messageDiv);
   chatBody.scrollTop = chatBody.scrollHeight;
@@ -309,21 +308,18 @@ function addUserMessage(text) {
 
 function showInitialOptions() {
   addBotMessage("Please choose an option:");
-  
   const optionsDiv = document.createElement("div");
   optionsDiv.className = "options-container";
   optionsDiv.innerHTML = `
-    <button class="option-btn" onclick="handleOption('Bikes')">View Bikes</button>
-    <button class="option-btn" onclick="handleOption('Order')">${conversationState.selectedBikes.length > 0 ? `Order (${conversationState.selectedBikes.length})` : 'Place Order'}</button>
-    <button class="option-btn" onclick="handleOption('Complaint')">File Complaint</button>
+    <button class="option-btn" role="button" tabindex="0" onclick="handleOption('Bikes')">View Bikes</button>
+    <button class="option-btn" role="button" tabindex="0" onclick="handleOption('Order')">${conversationState.selectedBikes.length > 0 ? `Order (${conversationState.selectedBikes.length})` : 'Place Order'}</button>
+    <button class="option-btn" role="button" tabindex="0" onclick="handleOption('Complaint')">File Complaint</button>
   `;
-  
   document.getElementById("chatBody").appendChild(optionsDiv);
 }
 
 function handleOption(option) {
   addUserMessage(option);
-  
   if (option === "Bikes") {
     showBikeList();
   } else if (option === "Order") {
@@ -339,7 +335,6 @@ function handleOption(option) {
 
 function showBikeList() {
   addBotMessage("Here are the bikes available for rent (per day, morning to night):");
-  
   BIKE_LIST.forEach((bike, index) => {
     setTimeout(() => {
       const bikeDiv = document.createElement("div");
@@ -347,7 +342,7 @@ function showBikeList() {
       bikeDiv.innerHTML = `
         <div class="bike-name">${bike.name}</div>
         <div class="bike-price">₹${bike.price}/day</div>
-        <button class="option-btn" style="margin-top:5px;font-size:12px;" 
+        <button class="option-btn" style="margin-top:5px;font-size:12px;" role="button" tabindex="0"
                 onclick="handleChoice('Add ${bike.name}')">
           Add to Order
         </button>
@@ -356,7 +351,6 @@ function showBikeList() {
       document.getElementById("chatBody").scrollTop = document.getElementById("chatBody").scrollHeight;
     }, 300 * (index + 1));
   });
-  
   setTimeout(() => {
     showOptions(["View Cart", "Back to Menu"]);
   }, 300 * (BIKE_LIST.length + 1));
@@ -365,17 +359,14 @@ function showBikeList() {
 function showOptions(options) {
   const optionsDiv = document.createElement("div");
   optionsDiv.className = "options-container";
-  
   optionsDiv.innerHTML = options.map(option => 
-    `<button class="option-btn" onclick="handleChoice('${option}')">${option}</button>`
+    `<button class="option-btn" role="button" tabindex="0" onclick="handleChoice('${option}')">${option}</button>`
   ).join("");
-  
   document.getElementById("chatBody").appendChild(optionsDiv);
 }
 
 function handleChoice(choice) {
   addUserMessage(choice);
-  
   if (choice.startsWith("Add ")) {
     const bikeName = choice.substring(4);
     addToOrder(bikeName);
@@ -404,7 +395,6 @@ function addToOrder(bikeName) {
     conversationState.selectedBikes.push(bike);
     addBotMessage(`✅ Added ${bike.name} (₹${bike.price}/day) to your rental order`);
     updateCartIndicator();
-    
     setTimeout(() => {
       showOptions(["View Cart", "Continue Browsing"]);
     }, 500);
@@ -416,21 +406,19 @@ function addToOrder(bikeName) {
 
 function showOrderForm() {
   addBotMessage("Your Rental Summary:");
-  
   conversationState.selectedBikes.forEach((bike, index) => {
     const bikeDiv = document.createElement("div");
     bikeDiv.className = "bike-card";
     bikeDiv.innerHTML = `
       <div class="bike-name">${bike.name}</div>
       <div class="bike-price">₹${bike.price}/day</div>
-      <button class="option-btn" style="margin-top:5px;font-size:12px;background:#666;" 
+      <button class="option-btn" style="margin-top:5px;font-size:12px;background:#666;" role="button" tabindex="0"
               onclick="removeFromOrder(${index})">
         Remove
       </button>
     `;
     document.getElementById("chatBody").appendChild(bikeDiv);
   });
-  
   const total = conversationState.selectedBikes.reduce((sum, bike) => sum + bike.price, 0);
   const totalDiv = document.createElement("div");
   totalDiv.style.margin = "10px 0";
@@ -438,23 +426,20 @@ function showOrderForm() {
   totalDiv.style.color = "#ccc";
   totalDiv.textContent = `Total: ₹${total}/day`;
   document.getElementById("chatBody").appendChild(totalDiv);
-  
   addBotMessage("Please provide your details to complete the rental:");
-  
   const formDiv = document.createElement("div");
   formDiv.className = "order-form";
   formDiv.innerHTML = `
-    <input type="text" id="orderName" placeholder="Your Name" required>
-    <input type="tel" id="orderPhone" placeholder="Phone Number" required>
-    <input type="text" id="orderAddress" placeholder="Pickup Address" required>
-    <input type="number" id="rentalDays" placeholder="Number of Days" min="1" required>
-    <textarea id="orderNotes" placeholder="Special instructions"></textarea>
+    <input type="text" id="orderName" placeholder="Your Name" required aria-label="Your Name">
+    <input type="tel" id="orderPhone" placeholder="Phone Number (e.g., 9002468844 or +919002468844)" required aria-label="Phone Number">
+    <input type="text" id="orderAddress" placeholder="Pickup Address" required aria-label="Pickup Address">
+    <input type="number" id="rentalDays" placeholder="Number of Days" min="1" required aria-label="Number of Days">
+    <textarea id="orderNotes" placeholder="Special instructions" aria-label="Special Instructions"></textarea>
     <div style="display:flex;gap:10px;">
-      <button onclick="submitOrder()" style="flex:1;">Submit Rental</button>
-      <button onclick="continueBrowsing()" style="background:#333;flex:1;">Add More Bikes</button>
+      <button onclick="submitOrder()" style="flex:1;" role="button" aria-label="Submit Rental">Submit Rental</button>
+      <button onclick="continueBrowsing()" style="background:#333;flex:1;" role="button" aria-label="Add More Bikes">Add More Bikes</button>
     </div>
   `;
-  
   document.getElementById("chatBody").appendChild(formDiv);
   document.getElementById("chatBody").scrollTop = document.getElementById("chatBody").scrollHeight;
 }
@@ -463,8 +448,8 @@ function removeFromOrder(index) {
   const removedBike = conversationState.selectedBikes.splice(index, 1)[0];
   addBotMessage(`❌ Removed ${removedBike.name} from your order`);
   updateCartIndicator();
-  
-  document.getElementById("chatBody").innerHTML = '';
+  const chatBody = document.getElementById("chatBody");
+  chatBody.innerHTML = '';
   if (conversationState.selectedBikes.length > 0) {
     showOrderForm();
   } else {
@@ -480,23 +465,23 @@ function continueBrowsing() {
 
 function submitOrder() {
   const name = document.getElementById("orderName").value.trim();
-  const phone = document.getElementById("orderPhone").value.trim();
+  let phone = document.getElementById("orderPhone").value.trim();
   const address = document.getElementById("orderAddress").value.trim();
   const days = document.getElementById("rentalDays").value.trim();
   const notes = document.getElementById("orderNotes").value.trim();
-  
-  if (!name || !phone || !address || !days || days <= 0) {
-    addBotMessage("Please fill in all required fields correctly (Name, Phone, Address, Days must be greater than 0)");
+  // Normalize phone number (remove +91 or 91, ensure 10 digits)
+  phone = phone.replace(/^\+?91/, '').trim();
+  const phoneRegex = /^\d{10}$/;
+  if (!name || !phone || !address || !days || days <= 0 || !phoneRegex.test(phone)) {
+    addBotMessage("Please provide a valid name, 10-digit phone number (e.g., 9002468844 or +919002468844), address, and rental days (greater than 0).");
     return;
   }
-  
   let orderSummary = "=== BURDWAN RENTAL BIKE ORDER ===\n\n";
   orderSummary += `Customer: ${name}\n`;
-  orderSummary += `Phone: ${phone}\n`;
+  orderSummary += `Phone: +91${phone}\n`;
   orderSummary += `Pickup Address: ${address}\n`;
   orderSummary += `Rental Days: ${days}\n`;
   if (notes) orderSummary += `Notes: ${notes}\n\n`;
-  
   orderSummary += "RENTAL ITEMS:\n";
   let total = 0;
   conversationState.selectedBikes.forEach(bike => {
@@ -505,26 +490,23 @@ function submitOrder() {
     total += bikeTotal;
   });
   orderSummary += `\nTOTAL: ₹${total}\n`;
-  
   try {
-    const whatsappUrl = `https://wa.me/919002468844?text=${encodeURIComponent(orderSummary)}`;
-    window.open(whatsappUrl, '_blank');
-    
+    const whatsappUrl = `https://wa.me/+919002468844?text=${encodeURIComponent(orderSummary)}`;
+    const whatsappWindow = window.open(whatsappUrl, '_blank');
     const emailSubject = encodeURIComponent(`New Bike Rental from ${name}`);
     const emailBody = encodeURIComponent(orderSummary);
     const emailUrl = `mailto:sohamc981@gmail.com?subject=${emailSubject}&body=${emailBody}`;
     window.location.href = emailUrl;
-    
+    if (!whatsappWindow) {
+      addBotMessage("Could not open WhatsApp. Please send the order manually to +919002468844.");
+    }
     addBotMessage("📲 Your rental request has been submitted! We'll contact you shortly.");
     conversationState.selectedBikes = [];
     updateCartIndicator();
-    
-    setTimeout(() => {
-      showInitialOptions();
-    }, 2000);
+    setTimeout(() => showInitialOptions(), 2000);
   } catch (error) {
     console.error("Error submitting order:", error);
-    addBotMessage("There was an error submitting your order. Please try again.");
+    addBotMessage("Failed to submit order. Please try again or contact us at +919002468844.");
   }
 }
 
@@ -535,14 +517,12 @@ function startOrderProcess() {
 
 function fileComplaint() {
   addBotMessage("I'm sorry to hear you have a complaint. Please describe your issue:");
-  
   const inputDiv = document.createElement("div");
   inputDiv.innerHTML = `
-    <textarea id="complaintText" style="width:100%;padding:10px;margin-top:10px;border:1px solid #333;border-radius:5px;background:#222;color:#fff;" 
-              placeholder="Describe your issue..."></textarea>
-    <button class="option-btn" style="margin-top:10px;" onclick="submitComplaint()">Submit Complaint</button>
+    <textarea id="complaintText" style="width:100%;padding:10px;margin-top:10px;border:1px solid #333;border-radius:5px;background:#222;color:#fff;"
+              placeholder="Describe your issue..." aria-label="Complaint Description"></textarea>
+    <button class="option-btn" style="margin-top:10px;" role="button" tabindex="0" onclick="submitComplaint()">Submit Complaint</button>
   `;
-  
   document.getElementById("chatBody").appendChild(inputDiv);
   document.getElementById("chatBody").scrollTop = document.getElementById("chatBody").scrollHeight;
 }
@@ -553,21 +533,15 @@ function submitComplaint() {
     addBotMessage("Please describe your complaint before submitting.");
     return;
   }
-  
   addUserMessage(complaint);
-  
   try {
     const emailUrl = `mailto:sohamc981@gmail.com?subject=Complaint&body=${encodeURIComponent(complaint)}`;
     window.location.href = emailUrl;
-    
     addBotMessage("Thank you for your feedback. We've submitted your complaint to our manager.");
-    
-    setTimeout(() => {
-      showInitialOptions();
-    }, 1500);
+    setTimeout(() => showInitialOptions(), 1500);
   } catch (error) {
     console.error("Error submitting complaint:", error);
-    addBotMessage("There was an error submitting your complaint. Please try again.");
+    addBotMessage("Failed to submit complaint. Please try again or email sohamc981@gmail.com.");
   }
 }
 
@@ -580,20 +554,14 @@ function sendMessage() {
     return;
   }
   const message = userInput.value.trim();
-  
   if (message !== "") {
     addUserMessage(message);
     userInput.value = "";
-    
     const lowerMessage = message.toLowerCase();
-    
-    // Check for bike list-related queries
     if (lowerMessage.includes("bike") || lowerMessage.includes("bikes") || lowerMessage.includes("list")) {
       showBikeList();
       return;
     }
-    
-    // Check for order/cart queries
     if (lowerMessage.includes("order") || lowerMessage.includes("cart") || lowerMessage.includes("ordr")) {
       if (conversationState.selectedBikes.length > 0) {
         showOrderForm();
@@ -603,18 +571,13 @@ function sendMessage() {
       }
       return;
     }
-    
-    // Check for complaint queries
     if (lowerMessage.includes("complaint") || lowerMessage.includes("issue") || lowerMessage.includes("problem") || lowerMessage.includes("complain")) {
       fileComplaint();
       return;
     }
-    
-    // Check for bike names with fuzzy search
     const words = lowerMessage.split(/\s+(and|&)\s+/).filter(word => word && !["and", "&"].includes(word.toLowerCase().trim()));
     let bikesFound = [];
     let unrecognizedWords = [];
-    
     words.forEach(word => {
       const trimmedWord = word.trim();
       if (trimmedWord) {
@@ -626,28 +589,26 @@ function sendMessage() {
         }
       }
     });
-    
     if (bikesFound.length > 0) {
       bikesFound.forEach(bikeName => {
         addToOrder(bikeName);
       });
       if (unrecognizedWords.length > 0) {
-        addBotMessage(`Could not find: ${unrecognizedWords.join(", ")}. Please check spelling or use the menu.`);
+        addBotMessage(`Could not find: ${unrecognizedWords.join(", ")}. Try viewing the bike list.`);
+        showOptions(["View Bikes", "Back to Menu"]);
       }
       return;
     } else if (unrecognizedWords.length > 0) {
       const results = fuse.search(unrecognizedWords[0]);
       if (results.length > 0 && results[0].score < 0.3) {
         fuzzyLastSuggestion = results[0].item.name;
-        addBotMessage(`Did you mean "${fuzzyLastSuggestion}"? <button class="option-btn" onclick="handleChoice('Yes, add it');">Yes, add it</button> <button class="option-btn" onclick="handleChoice('No, try again');">No, try again</button>`);
+        addBotMessage(`Did you mean "${fuzzyLastSuggestion}"? <button class="option-btn" role="button" tabindex="0" onclick="handleChoice('Yes, add it');">Yes, add it</button> <button class="option-btn" role="button" tabindex="0" onclick="handleChoice('No, try again');">No, try again</button>`);
       } else {
-        addBotMessage(`Sorry, "${unrecognizedWords.join(", ")}" not found. Please use the menu buttons below.`);
-        showInitialOptions();
+        addBotMessage(`Sorry, "${unrecognizedWords.join(", ")}" not found. Try viewing the bike list.`);
+        showOptions(["View Bikes", "Back to Menu"]);
       }
       return;
     }
-    
-    // Handle basic keywords with fuzzy matching
     if (lowerMessage.includes("hello") || lowerMessage.includes("hi") || lowerMessage.includes("hlo")) {
       addBotMessage("Hello! Welcome to Burdwan Rental Bike. How can I help you today?");
       showInitialOptions();
