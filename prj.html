@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Burdwan Rental Bike Chatbot</title>
+  <style>
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0; 
+      padding: 0; 
+      background: #000;
+    }
+    .chat-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 350px;
+      background: #1a1a1a;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(255,255,255,0.1);
+      overflow: hidden;
+      z-index: 1000;
+      border: 1px solid #333;
+    }
+    .chat-header {
+      background: #333;
+      color: #fff;
+      padding: 15px;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .chat-body {
+      height: 400px;
+      overflow-y: auto;
+      padding: 15px;
+      background: #000;
+      box-sizing: border-box;
+    }
+    .message {
+      margin-bottom: 20px; /* Increased margin to prevent overlap */
+      display: flex;
+      flex-direction: column; /* Stack message elements vertically */
+    }
+    .bot-message {
+      align-items: flex-start;
+    }
+    .user-message {
+      align-items: flex-end;
+    }
+    .message-bubble {
+      max-width: 80%;
+      padding: 10px 15px;
+      border-radius: 18px;
+      line-height: 1.4;
+      margin-bottom: 5px; /* Space between bubble and options */
+    }
+    .bot-message .message-bubble {
+      background: #222;
+      color: #ccc;
+      border-bottom-left-radius: 5px;
+    }
+    .user-message .message-bubble {
+      background: #444;
+      color: #fff;
+      border-bottom-right-radius: 5px;
+    }
+    .options-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px; /* Increased gap between buttons */
+      margin-top: 10px;
+      margin-bottom: 20px; /* Space below options */
+    }
+    .option-btn {
+      background: #333;
+      color: #ccc;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 15px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .option-btn:hover {
+      background: #555;
+    }
+    .user-input {
+      display: flex;
+      padding: 10px;
+      border-top: 1px solid #333;
+      background: #1a1a1a;
+      box-sizing: border-box;
+    }
+    #userText {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #333;
+      border-radius: 20px;
+      outline: none;
+      background: #222;
+      color: #fff;
+    }
+    #sendBtn {
+      background: #444;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      margin-left: 10px;
+      cursor: pointer;
+    }
+    .typing-indicator {
+      display: inline-block;
+      padding: 10px 15px;
+      background: #222;
+      color: #ccc;
+      border-radius: 18px;
+      margin-bottom: 20px;
+    }
+    .bike-card {
+      background: #222;
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 15px; /* Increased margin to prevent overlap */
+      box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+      border-left: 3px solid #555;
+    }
+    .bike-name {
+      font-weight: bold;
+      color: #fff;
+    }
+    .bike-price {
+      color: #999;
+      font-size: 14px;
+      margin-bottom: 5px; /* Space between price and button */
+    }
+    .order-form {
+      background: #222;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px; /* Space below form */
+    }
+    .order-form input, .order-form textarea {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      background: #333;
+      border: 1px solid #444;
+      border-radius: 5px;
+      color: #fff;
+      box-sizing: border-box;
+    }
+    .order-form button {
+      background: #444;
+      color: #fff;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .cart-indicator {
+      position: fixed;
+      bottom: 440px;
+      right: 30px;
+      background: #444;
+      color: #fff;
+      border-radius: 50%;
+      width: 25px;
+      height: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      z-index: 1001;
+    }
+  </style>
+</head>
+<body>
+
+<div class="chat-container" id="chatContainer">
+  <div class="chat-header" onclick="toggleChat()">
+    <span>🏍️ Burdwan Rental Bike Chatbot</span>
+    <span id="toggleIcon">▼</span>
+  </div>
+  <div class="chat-body" id="chatBody">
+    <!-- Messages will appear here -->
+  </div>
+  <div class="user-input">
+    <input type="text" id="userText" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+    <button id="sendBtn" onclick="sendMessage()">→</button>
+  </div>
+</div>
+
+<!-- Include Fuse.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+
+<script>
+// Bike data (images removed)
+const BIKE_LIST = [
+  { name: "Yamaha R15", price: 700 },
+  { name: "Husqvarna Svartpilen", price: 700 },
+  { name: "KTM RC390", price: 900 },
+  { name: "Hyosung GT-R", price: 900 },
+  { name: "Pulsar F250", price: 900 },
+  { name: "Pulsar 125", price: 500 },
+  { name: "Suzuki Gixxer", price: 500 }
+];
+
+// Initialize Fuse.js for fuzzy search
+const fuse = new Fuse(BIKE_LIST, {
+  keys: ['name'],
+  includeScore: true,
+  threshold: 0.3, // Sensitivity for fuzzy matching
+  distance: 5,
+  minMatchCharLength: 3
+});
+
+let conversationState = {
+  step: 0,
+  selectedBikes: []
+};
+
+// Initialize chat
+function initializeChat() {
+  try {
+    addBotMessage("Welcome to Burdwan Rental Bike! 🏍️ How can I help you today?");
+    showInitialOptions();
+    updateCartIndicator();
+  } catch (error) {
+    console.error("Initialization error:", error);
+    addBotMessage("Sorry, there was an error loading the chatbot. Please try refreshing the page.");
+  }
+}
+
+// Call initializeChat after a short delay to ensure DOM is loaded
+window.onload = function() {
+  setTimeout(initializeChat, 500);
+};
+
+function toggleChat() {
+  const chatBody = document.getElementById("chatBody");
+  const chatContainer = document.getElementById("chatContainer");
+  const toggleIcon = document.getElementById("toggleIcon");
+  if (chatBody.style.display === "none") {
+    chatBody.style.display = "block";
+    chatContainer.style.height = "500px";
+    toggleIcon.textContent = "▼";
+  } else {
+    chatBody.style.display = "none";
+    chatContainer.style.height = "auto";
+    toggleIcon.textContent = "▲";
+  }
+  updateCartIndicator();
+}
+
+function updateCartIndicator() {
+  let cartIndicator = document.querySelector('.cart-indicator');
+  if (!cartIndicator && conversationState.selectedBikes.length > 0) {
+    cartIndicator = document.createElement('div');
+    cartIndicator.className = 'cart-indicator';
+    document.body.appendChild(cartIndicator);
+  }
+  if (cartIndicator) {
+    cartIndicator.textContent = conversationState.selectedBikes.length;
+    cartIndicator.style.display = conversationState.selectedBikes.length > 0 ? 'flex' : 'none';
+  }
+}
+
+function addBotMessage(text, isTyping = false) {
+  const chatBody = document.getElementById("chatBody");
+  if (!chatBody) {
+    console.error("Chat body not found!");
+    return;
+  }
+  const messageDiv = document.createElement("div");
+  messageDiv.className = "message bot-message";
+  
+  if (isTyping) {
+    messageDiv.innerHTML = `
+      <div class="typing-indicator">
+        <span>.</span><span>.</span><span>.</span>
+      </div>
+    `;
+  } else {
+    messageDiv.innerHTML = `<div class="message-bubble">${text}</div>`;
+  }
+  
+  chatBody.appendChild(messageDiv);
+  chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+function addUserMessage(text) {
+  const chatBody = document.getElementById("chatBody");
+  if (!chatBody) {
+    console.error("Chat body not found!");
+    return;
+  }
+  const messageDiv = document.createElement("div");
+  messageDiv.className = "message user-message";
+  messageDiv.innerHTML = `<div class="message-bubble">${text}</div>`;
+  chatBody.appendChild(messageDiv);
+  chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+function showInitialOptions() {
+  addBotMessage("Please choose an option:");
+  
+  const optionsDiv = document.createElement("div");
+  optionsDiv.className = "options-container";
+  optionsDiv.innerHTML = `
+    <button class="option-btn" onclick="handleOption('Bikes')">View Bikes</button>
+    <button class="option-btn" onclick="handleOption('Order')">${conversationState.selectedBikes.length > 0 ? `Order (${conversationState.selectedBikes.length})` : 'Place Order'}</button>
+    <button class="option-btn" onclick="handleOption('Complaint')">File Complaint</button>
+  `;
+  
+  document.getElementById("chatBody").appendChild(optionsDiv);
+}
+
+function handleOption(option) {
+  addUserMessage(option);
+  
+  if (option === "Bikes") {
+    showBikeList();
+  } else if (option === "Order") {
+    if (conversationState.selectedBikes.length > 0) {
+      showOrderForm();
+    } else {
+      startOrderProcess();
+    }
+  } else if (option === "Complaint") {
+    fileComplaint();
+  }
+}
+
+function showBikeList() {
+  addBotMessage("Here are the bikes available for rent (per day, morning to night):");
+  
+  BIKE_LIST.forEach((bike, index) => {
+    setTimeout(() => {
+      const bikeDiv = document.createElement("div");
+      bikeDiv.className = "bike-card";
+      bikeDiv.innerHTML = `
+        <div class="bike-name">${bike.name}</div>
+        <div class="bike-price">₹${bike.price}/day</div>
+        <button class="option-btn" style="margin-top:5px;font-size:12px;" 
+                onclick="handleChoice('Add ${bike.name}')">
+          Add to Order
+        </button>
+      `;
+      document.getElementById("chatBody").appendChild(bikeDiv);
+      document.getElementById("chatBody").scrollTop = document.getElementById("chatBody").scrollHeight;
+    }, 300 * (index + 1));
+  });
+  
+  setTimeout(() => {
+    showOptions(["View Cart", "Back to Menu"]);
+  }, 300 * (BIKE_LIST.length + 1));
+}
+
+function showOptions(options) {
+  const optionsDiv = document.createElement("div");
+  optionsDiv.className = "options-container";
+  
+  optionsDiv.innerHTML = options.map(option => 
+    `<button class="option-btn" onclick="handleChoice('${option}')">${option}</button>`
+  ).join("");
+  
+  document.getElementById("chatBody").appendChild(optionsDiv);
+}
+
+function handleChoice(choice) {
+  addUserMessage(choice);
+  
+  if (choice.startsWith("Add ")) {
+    const bikeName = choice.substring(4);
+    addToOrder(bikeName);
+  } else if (choice === "Finish Order" || choice === "View Cart") {
+    if (conversationState.selectedBikes.length > 0) {
+      showOrderForm();
+    } else {
+      addBotMessage("Your cart is empty. Please add some bikes first.");
+      showInitialOptions();
+    }
+  } else if (choice === "Back to Menu") {
+    showInitialOptions();
+  } else if (choice === "Yes, add it") {
+    addToOrder(fuzzyLastSuggestion);
+    showInitialOptions();
+  } else if (choice === "No, try again") {
+    showInitialOptions();
+  } else if (choice === "Continue Browsing") {
+    showBikeList();
+  }
+}
+
+function addToOrder(bikeName) {
+  const bike = BIKE_LIST.find(b => b.name === bikeName);
+  if (bike) {
+    conversationState.selectedBikes.push(bike);
+    addBotMessage(`✅ Added ${bike.name} (₹${bike.price}/day) to your rental order`);
+    updateCartIndicator();
+    
+    setTimeout(() => {
+      showOptions(["View Cart", "Continue Browsing"]);
+    }, 500);
+  } else {
+    addBotMessage(`Sorry, "${bikeName}" is not available. Please choose from the list below.`);
+    showInitialOptions();
+  }
+}
+
+function showOrderForm() {
+  addBotMessage("Your Rental Summary:");
+  
+  conversationState.selectedBikes.forEach((bike, index) => {
+    const bikeDiv = document.createElement("div");
+    bikeDiv.className = "bike-card";
+    bikeDiv.innerHTML = `
+      <div class="bike-name">${bike.name}</div>
+      <div class="bike-price">₹${bike.price}/day</div>
+      <button class="option-btn" style="margin-top:5px;font-size:12px;background:#666;" 
+              onclick="removeFromOrder(${index})">
+        Remove
+      </button>
+    `;
+    document.getElementById("chatBody").appendChild(bikeDiv);
+  });
+  
+  const total = conversationState.selectedBikes.reduce((sum, bike) => sum + bike.price, 0);
+  const totalDiv = document.createElement("div");
+  totalDiv.style.margin = "10px 0";
+  totalDiv.style.fontWeight = "bold";
+  totalDiv.style.color = "#ccc";
+  totalDiv.textContent = `Total: ₹${total}/day`;
+  document.getElementById("chatBody").appendChild(totalDiv);
+  
+  addBotMessage("Please provide your details to complete the rental:");
+  
+  const formDiv = document.createElement("div");
+  formDiv.className = "order-form";
+  formDiv.innerHTML = `
+    <input type="text" id="orderName" placeholder="Your Name" required>
+    <input type="tel" id="orderPhone" placeholder="Phone Number" required>
+    <input type="text" id="orderAddress" placeholder="Pickup Address" required>
+    <input type="number" id="rentalDays" placeholder="Number of Days" min="1" required>
+    <textarea id="orderNotes" placeholder="Special instructions"></textarea>
+    <div style="display:flex;gap:10px;">
+      <button onclick="submitOrder()" style="flex:1;">Submit Rental</button>
+      <button onclick="continueBrowsing()" style="background:#333;flex:1;">Add More Bikes</button>
+    </div>
+  `;
+  
+  document.getElementById("chatBody").appendChild(formDiv);
+  document.getElementById("chatBody").scrollTop = document.getElementById("chatBody").scrollHeight;
+}
+
+function removeFromOrder(index) {
+  const removedBike = conversationState.selectedBikes.splice(index, 1)[0];
+  addBotMessage(`❌ Removed ${removedBike.name} from your order`);
+  updateCartIndicator();
+  
+  document.getElementById("chatBody").innerHTML = '';
+  if (conversationState.selectedBikes.length > 0) {
+    showOrderForm();
+  } else {
+    addBotMessage("Your cart is now empty");
+    showInitialOptions();
+  }
+}
+
+function continueBrowsing() {
+  document.getElementById("chatBody").innerHTML = '';
+  showBikeList();
+}
+
+function submitOrder() {
+  const name = document.getElementById("orderName").value.trim();
+  const phone = document.getElementById("orderPhone").value.trim();
+  const address = document.getElementById("orderAddress").value.trim();
+  const days = document.getElementById("rentalDays").value.trim();
+  const notes = document.getElementById("orderNotes").value.trim();
+  
+  if (!name || !phone || !address || !days || days <= 0) {
+    addBotMessage("Please fill in all required fields correctly (Name, Phone, Address, Days must be greater than 0)");
+    return;
+  }
+  
+  let orderSummary = "=== BURDWAN RENTAL BIKE ORDER ===\n\n";
+  orderSummary += `Customer: ${name}\n`;
+  orderSummary += `Phone: ${phone}\n`;
+  orderSummary += `Pickup Address: ${address}\n`;
+  orderSummary += `Rental Days: ${days}\n`;
+  if (notes) orderSummary += `Notes: ${notes}\n\n`;
+  
+  orderSummary += "RENTAL ITEMS:\n";
+  let total = 0;
+  conversationState.selectedBikes.forEach(bike => {
+    const bikeTotal = bike.price * parseInt(days);
+    orderSummary += `- ${bike.name}: ₹${bike.price}/day x ${days} days = ₹${bikeTotal}\n`;
+    total += bikeTotal;
+  });
+  orderSummary += `\nTOTAL: ₹${total}\n`;
+  
+  try {
+    const whatsappUrl = `https://wa.me/919832859198?text=${encodeURIComponent(orderSummary)}`;
+    window.open(whatsappUrl, '_blank');
+    
+    const emailSubject = encodeURIComponent(`New Bike Rental from ${name}`);
+    const emailBody = encodeURIComponent(orderSummary);
+    const emailUrl = `mailto:garyaman812@gmail.com?subject=${emailSubject}&body=${emailBody}`;
+    window.location.href = emailUrl;
+    
+    addBotMessage("📲 Your rental request has been submitted! We'll contact you shortly.");
+    conversationState.selectedBikes = [];
+    updateCartIndicator();
+    
+    setTimeout(() => {
+      showInitialOptions();
+    }, 2000);
+  } catch (error) {
+    console.error("Error submitting order:", error);
+    addBotMessage("There was an error submitting your order. Please try again.");
+  }
+}
+
+function startOrderProcess() {
+  conversationState.selectedBikes = [];
+  showBikeList();
+}
+
+function fileComplaint() {
+  addBotMessage("I'm sorry to hear you have a complaint. Please describe your issue:");
+  
+  const inputDiv = document.createElement("div");
+  inputDiv.innerHTML = `
+    <textarea id="complaintText" style="width:100%;padding:10px;margin-top:10px;border:1px solid #333;border-radius:5px;background:#222;color:#fff;" 
+              placeholder="Describe your issue..."></textarea>
+    <button class="option-btn" style="margin-top:10px;" onclick="submitComplaint()">Submit Complaint</button>
+  `;
+  
+  document.getElementById("chatBody").appendChild(inputDiv);
+  document.getElementById("chatBody").scrollTop = document.getElementById("chatBody").scrollHeight;
+}
+
+function submitComplaint() {
+  const complaint = document.getElementById("complaintText").value.trim();
+  if (!complaint) {
+    addBotMessage("Please describe your complaint before submitting.");
+    return;
+  }
+  
+  addUserMessage(complaint);
+  
+  try {
+    const emailUrl = `mailto:garyaman812@gmail.com?subject=Complaint&body=${encodeURIComponent(complaint)}`;
+    window.location.href = emailUrl;
+    
+    addBotMessage("Thank you for your feedback. We've submitted your complaint to our manager.");
+    
+    setTimeout(() => {
+      showInitialOptions();
+    }, 1500);
+  } catch (error) {
+    console.error("Error submitting complaint:", error);
+    addBotMessage("There was an error submitting your complaint. Please try again.");
+  }
+}
+
+let fuzzyLastSuggestion = null;
+
+function sendMessage() {
+  const userInput = document.getElementById("userText");
+  if (!userInput) {
+    console.error("User input field not found!");
+    return;
+  }
+  const message = userInput.value.trim();
+  
+  if (message !== "") {
+    addUserMessage(message);
+    userInput.value = "";
+    
+    const lowerMessage = message.toLowerCase();
+    
+    // Check for bike list-related queries
+    if (lowerMessage.includes("bike") || lowerMessage.includes("bikes") || lowerMessage.includes("list")) {
+      showBikeList();
+      return;
+    }
+    
+    // Check for order/cart queries
+    if (lowerMessage.includes("order") || lowerMessage.includes("cart") || lowerMessage.includes("ordr")) {
+      if (conversationState.selectedBikes.length > 0) {
+        showOrderForm();
+      } else {
+        addBotMessage("Your cart is empty. Would you like to browse our bikes?");
+        showInitialOptions();
+      }
+      return;
+    }
+    
+    // Check for complaint queries
+    if (lowerMessage.includes("complaint") || lowerMessage.includes("issue") || lowerMessage.includes("problem") || lowerMessage.includes("complain")) {
+      fileComplaint();
+      return;
+    }
+    
+    // Check for bike names with fuzzy search
+    const words = lowerMessage.split(/\s+(and|&)\s+/).filter(word => word && !["and", "&"].includes(word.toLowerCase().trim()));
+    let bikesFound = [];
+    let unrecognizedWords = [];
+    
+    words.forEach(word => {
+      const trimmedWord = word.trim();
+      if (trimmedWord) {
+        const results = fuse.search(trimmedWord);
+        if (results.length > 0 && results[0].score < 0.3) {
+          bikesFound.push(results[0].item.name);
+        } else {
+          unrecognizedWords.push(trimmedWord);
+        }
+      }
+    });
+    
+    if (bikesFound.length > 0) {
+      bikesFound.forEach(bikeName => {
+        addToOrder(bikeName);
+      });
+      if (unrecognizedWords.length > 0) {
+        addBotMessage(`Could not find: ${unrecognizedWords.join(", ")}. Please check spelling or use the menu.`);
+      }
+      return;
+    } else if (unrecognizedWords.length > 0) {
+      const results = fuse.search(unrecognizedWords[0]);
+      if (results.length > 0 && results[0].score < 0.3) {
+        fuzzyLastSuggestion = results[0].item.name;
+        addBotMessage(`Did you mean "${fuzzyLastSuggestion}"? <button class="option-btn" onclick="handleChoice('Yes, add it');">Yes, add it</button> <button class="option-btn" onclick="handleChoice('No, try again');">No, try again</button>`);
+      } else {
+        addBotMessage(`Sorry, "${unrecognizedWords.join(", ")}" not found. Please use the menu buttons below.`);
+        showInitialOptions();
+      }
+      return;
+    }
+    
+    // Handle basic keywords with fuzzy matching
+    if (lowerMessage.includes("hello") || lowerMessage.includes("hi") || lowerMessage.includes("hlo")) {
+      addBotMessage("Hello! Welcome to Burdwan Rental Bike. How can I help you today?");
+      showInitialOptions();
+    } else if (lowerMessage.includes("thank") || lowerMessage.includes("thx") || lowerMessage.includes("thanks")) {
+      addBotMessage("You're welcome! Is there anything else I can help with?");
+      showInitialOptions();
+    } else {
+      addBotMessage("For faster service, please use the menu buttons below.");
+      showInitialOptions();
+    }
+  }
+}
+
+function handleKeyPress(event) {
+  if (event.key === "Enter") {
+    sendMessage();
+  }
+}
+</script>
+
+</body>
+</html>
