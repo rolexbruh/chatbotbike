@@ -507,12 +507,12 @@ function submitOrder() {
   orderSummary += `\nTOTAL: ₹${total}\n`;
   
   try {
-    const whatsappUrl = `https://wa.me/919832859198?text=${encodeURIComponent(orderSummary)}`;
+    const whatsappUrl = `https://wa.me/919002468844?text=${encodeURIComponent(orderSummary)}`;
     window.open(whatsappUrl, '_blank');
     
     const emailSubject = encodeURIComponent(`New Bike Rental from ${name}`);
     const emailBody = encodeURIComponent(orderSummary);
-    const emailUrl = `mailto:garyaman812@gmail.com?subject=${emailSubject}&body=${emailBody}`;
+    const emailUrl = `mailto:sohamc981@gmail.com?subject=${emailSubject}&body=${emailBody}`;
     window.location.href = emailUrl;
     
     addBotMessage("📲 Your rental request has been submitted! We'll contact you shortly.");
@@ -557,7 +557,7 @@ function submitComplaint() {
   addUserMessage(complaint);
   
   try {
-    const emailUrl = `mailto:garyaman812@gmail.com?subject=Complaint&body=${encodeURIComponent(complaint)}`;
+    const emailUrl = `mailto:sohamc981@gmail.com?subject=Complaint&body=${encodeURIComponent(complaint)}`;
     window.location.href = emailUrl;
     
     addBotMessage("Thank you for your feedback. We've submitted your complaint to our manager.");
